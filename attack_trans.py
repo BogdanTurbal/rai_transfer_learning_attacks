@@ -415,10 +415,10 @@ def args_parser():
     parser = argparse.ArgumentParser(description="Argument parser")
     
     parser.add_argument("cr_d", help="Current dir")
-    parser.add_argument("msl", help="Sqn len", default=2)
-    parser.add_argument("ne", help="Num epochs", default=1)
-    parser.add_argument("mae", help="Max attack examples", default=1024)
-    parser.add_argument("mel", help="Max num of examples in dataset", default=0)
+    parser.add_argument("msl", help="Sqn len", default=2, type=int)
+    parser.add_argument("ne", help="Num epochs", default=1, type=int)
+    parser.add_argument("mae", help="Max attack examples", default=1024, type=int)
+    parser.add_argument("mel", help="Max num of examples in dataset", default=0, type=int)
     
     return parser.parse_args()
     #parser.add_argument("--optional-arg", help="Optional argument", default="default value")
