@@ -43,7 +43,7 @@ import argparse
 class CFG:
     val_split = 0.1
     test_split = 0.1
-    models = ['google-bert/bert-base-uncased']#, 'microsoft/MiniLM-L12-H384-uncased', 'google/electra-small-discriminator']
+    models = ['google-bert/bert-base-uncased', 'microsoft/MiniLM-L12-H384-uncased', 'google/electra-small-discriminator']
     models_dir = 'models'
     logs_dir = 'logs'
     data_dir = 'datasets'
@@ -147,8 +147,8 @@ class Experiment:
         seed=self.seed,
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         num_train_epochs=epochs,
         weight_decay=0.02,
         evaluation_strategy="epoch",
@@ -193,8 +193,8 @@ class Experiment:
     training_args = TrainingArguments(
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         weight_decay=0.01,
         evaluation_strategy="epoch",
         save_strategy="epoch",
@@ -268,7 +268,7 @@ class CustomAttackerCl:
     return self.name
 
   def build_a2t_attack(self, model_name, model_wrapper, dataset, dataset_name, n_ex):
-    attack = self.attack_method.build(model_wrapper, mlm=True)
+    attack = self.attack_method.build(model_wrapper, mlm=False)
     #num_examples = n_ex
     # Set up file naming
     #name = f'a2t_attack\|n_{num_examples}\|m_{model_name}\|d_{dataset_name}'
@@ -276,9 +276,11 @@ class CustomAttackerCl:
     out_dir = os.path.join(self.outdir, name + '.csv')
 
     # Configure the attack arguments
+    #print('heheheheheh'*20)
     attack_args = textattack.AttackArgs(num_examples=n_ex, log_to_csv=out_dir,
                                         checkpoint_interval=None, disable_stdout=True,
-                                        num_workers_per_device=8, query_budget=80)
+                                        num_workers_per_device=4, query_budget=80,
+                                        parallel=True)
 
     # Construct the attacker
     attacker = textattack.Attacker(attack, dataset, attack_args)
@@ -312,7 +314,7 @@ class BasicCLExperiment(Experiment):
     self.base_epochs = base_epochs
     self.sequences = self._generate_sequences(base_len)
 
-    self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+    self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
     #self.model_paths = {}
     self.training_method = training_method
     self.load_best_model_at_end = load_best_model_at_end
@@ -415,10 +417,13 @@ def args_parser():
     parser = argparse.ArgumentParser(description="Argument parser")
     
     parser.add_argument("cr_d", help="Current dir")
-    parser.add_argument("msl", help="Sqn len", default=2, type=int)
-    parser.add_argument("ne", help="Num epochs", default=1, type=int)
-    parser.add_argument("mae", help="Max attack examples", default=1024, type=int)
-    parser.add_argument("mel", help="Max num of examples in dataset", default=0, type=int)
+    parser.add_argument("--msl", help="Sqn len", default=2, type=int)
+    parser.add_argument("--ne", help="Num epochs", default=1, type=int)
+    parser.add_argument("--mae", help="Max attack examples", default=1024, type=int)
+    parser.add_argument("--mel", help="Max num of examples in dataset", default=0, type=int)
+    parser.add_argument("--seed", help="Seed", default=42, type=int)
+    parser.add_argument("--run", help="Run", default=0, type=int)
+    parser.add_argument("--mod_id", help="Model id", default=0, type=int)
     
     return parser.parse_args()
     #parser.add_argument("--optional-arg", help="Optional argument", default="default value")
@@ -448,20 +453,23 @@ def main():
     max_len = args.msl
     max_attack_ex = args.mae
     max_examples_num = args.mel
+    seed = args.seed
+    run = args.run
+    model_id = args.mod_id
     
     datasets = load_datasets(max_examples_num)
     
     print("Used datasets:")
     print(datasets)
     
-    warnings.filterwarnings("ignore")
-    seeds = [1, 42, 1234]
+    #warnings.filterwarnings("ignore")
+    #seeds = [1, 42, 1234]
      
-    for model in CFG.models:
-        exp = BasicCLExperiment(current_dir, datasets, model, seed=seeds[0], base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len)
+    for model in [CFG.models[model_id]]:
+        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len)
         exp.run_experiment()
 
-        save_data(args.current_dir, exp, model, 0)
+        save_data(args.current_dir, exp, model, run)
 
 if __name__ == "__main__":
     main()
