@@ -15,9 +15,7 @@ module load 2023
 
 cd /gpfs/work4/0/tese0660/projects/transf_learn_attack
 
-activate att
-
-CONT_PATH = /gpfs/work4/0/tese0660/projects/transf_learn_attack/
+conda activate att
 
 mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/0_id/
 mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/1_id/
