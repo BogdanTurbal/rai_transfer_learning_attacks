@@ -431,18 +431,21 @@ def args_parser():
     
 
 def save_data(current_dir, exp, model, run):
-  with open(f'{current_dir}models_paths_{model.split('/')[-1]}_{run}.pkl', 'wb') as file:
+  model_n = model.split('/')[-1]
+  with open(f'{current_dir}models_paths_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.models_paths, file)
 
   #time.sleep(10)
 
-  with open(f'{current_dir}model_results_{model.split('/')[-1]}_{run}.pkl', 'wb') as file:
+  with open(f'{current_dir}model_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.model_results, file)
 
   #time.sleep(10)
 
-  with open(f'{current_dir}attack_results_{model.split('/')[-1]}_{run}.pkl', 'wb') as file:
+  with open(f'{current_dir}attack_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.attack_results, file)
+
+  #time.sleep(10)
 
   #time.sleep(10)
   
