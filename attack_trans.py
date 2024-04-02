@@ -85,7 +85,7 @@ class ExperimentLogger:
     self.models_paths[model_name] = result
     
 class Experiment:
-  def __init__(self, base_directory, datasets, model_name, seed=42):
+  def __init__(self, base_directory, datasets, model_name, run, seed=42):
     self.base_directory = base_directory
     print(f'Base directory: {base_directory}')
 
@@ -99,6 +99,7 @@ class Experiment:
 
     self.exp_logger = ExperimentLogger(base_directory, datasets)
     self.seed = seed
+    self.run = run
 
   def get_preprocess_function(self, tokenizer, max_length=256):  
     def preprocess_function(examples):
@@ -344,7 +345,7 @@ class BasicCLExperiment(Experiment):
         dataset = self.datasets[dataset_idx][1]
         print(i)
 
-        model_name = self._get_model_name(sqn[:i + 1], self.training_method[:i + 1], self.epochs[:i + 1])#self._get_model_name(sqn, i)
+        model_name = self._get_model_name(sqn[:i + 1], self.training_method[:i + 1], self.epochs[:i + 1], self.run)#self._get_model_name(sqn, i)
 
         print(model_name)
 
@@ -466,7 +467,7 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len)
+        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run)
         exp.run_experiment()
 
         save_data(args.current_dir, exp, model, run)
