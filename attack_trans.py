@@ -324,7 +324,7 @@ class BasicCLExperiment(Experiment):
     self.seed = seed
 
   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
-    cust_attacker = CustomAttackerCl(outdir)
+    cust_attacker = CustomAttackerCl(outdir=outdir)
     dataset = dataset['test']
     results, name = cust_attacker.attack(model, model_name, tokenizer, dataset, dataset_name, max_attack_ex=self.max_attack_ex)
     return results, name
