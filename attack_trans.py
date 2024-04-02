@@ -148,8 +148,8 @@ class Experiment:
         seed=self.seed,
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=32,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=16,
         num_train_epochs=epochs,
         weight_decay=0.02,
         evaluation_strategy="epoch",
@@ -419,7 +419,7 @@ def args_parser():
     
     parser.add_argument("cr_d", help="Current dir")
     parser.add_argument("--msl", help="Sqn len", default=2, type=int)
-    parser.add_argument("--ne", help="Num epochs", default=1, type=int)
+    parser.add_argument("--ne", help="Num epochs", default=2, type=int)
     parser.add_argument("--mae", help="Max attack examples", default=1024, type=int)
     parser.add_argument("--mel", help="Max num of examples in dataset", default=0, type=int)
     parser.add_argument("--seed", help="Seed", default=42, type=int)
@@ -470,7 +470,7 @@ def main():
         exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run)
         exp.run_experiment()
 
-        save_data(args.current_dir, exp, model, run)
+        save_data(current_dir, exp, model, run)
 
 if __name__ == "__main__":
     main()
