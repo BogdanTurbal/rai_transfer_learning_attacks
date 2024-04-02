@@ -12,7 +12,6 @@
 
 module purge
 module load 2023
-module load CUDA/11.3.1
 
 cd /gpfs/work4/0/tese0660/projects/transf_learn_attack
 
