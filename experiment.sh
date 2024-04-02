@@ -15,6 +15,7 @@ module load 2023
 
 cd /gpfs/work4/0/tese0660/projects/transf_learn_attack
 
+source ~/.bashrc
 conda activate att
 
 mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/0_id/
