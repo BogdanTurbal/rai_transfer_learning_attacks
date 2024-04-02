@@ -310,8 +310,8 @@ class CustomAttackerCl:
 #@title Experiment: Basic experiment
 
 class BasicCLExperiment(Experiment):
-  def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024):
-    super().__init__(base_directory, datasets, model_name, seed)
+  def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+    super().__init__(base_directory, datasets, model_name, run, seed)
     self.base_epochs = base_epochs
     self.sequences = self._generate_sequences(base_len)
 
