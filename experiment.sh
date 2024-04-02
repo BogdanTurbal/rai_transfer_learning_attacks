@@ -5,7 +5,7 @@
 #SBATCH --gpus-per-node=2
 #SBATCH -t 10:00:00
 #SBATCH --cpus-per-task=18
-#SBATCH --mem=80G
+#SBATCH --mem=140G
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=bogdan.turbal.y@gmail.com
 #SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/gin_imp_%j.out

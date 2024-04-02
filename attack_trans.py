@@ -280,8 +280,8 @@ class CustomAttackerCl:
     #print('heheheheheh'*20)
     attack_args = textattack.AttackArgs(num_examples=n_ex, log_to_csv=out_dir,
                                         checkpoint_interval=None, disable_stdout=True,
-                                        num_workers_per_device=4, query_budget=80,
-                                        parallel=True)
+                                        num_workers_per_device=1, query_budget=80,
+                                        parallel=False)
 
     # Construct the attacker
     attacker = textattack.Attacker(attack, dataset, attack_args)
