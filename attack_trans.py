@@ -122,10 +122,10 @@ class Experiment:
         'recall': recall
     }
 
-  def _get_model_name(self, datasets, train_methods, epochs):
+  def _get_model_name(self, datasets, train_methods, epochs, run):
     sqns = []
     for dt, tm, ep in zip(datasets, train_methods, epochs):
-      sqns.append(f'd_{dt}_e_{ep}_t_{tm}')
+      sqns.append(f'd_{dt}_e_{ep}_t_{tm}_r_{run}')
     print(sqns)
 
     return '|'.join([self.model_name, '|'.join(sqns)])
@@ -322,8 +322,8 @@ class BasicCLExperiment(Experiment):
     self.epochs = epochs
     self.seed = seed
 
-  def attack_model(self, model, model_name, tokenizer, dataset, dataset_name):
-    cust_attacker = CustomAttackerCl()
+  def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
+    cust_attacker = CustomAttackerCl(outdir)
     dataset = dataset['test']
     results, name = cust_attacker.attack(model, model_name, tokenizer, dataset, dataset_name, max_attack_ex=self.max_attack_ex)
     return results, name
@@ -371,7 +371,7 @@ class BasicCLExperiment(Experiment):
         if att_key not in self.exp_logger.attack_results:
 
           print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
-          result, attack_name = self.attack_model(model, model_name, self.tokenizer, dataset, dataset_name)
+          result, attack_name = self.attack_model(model, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
           #self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
           self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
         else:
