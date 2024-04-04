@@ -35,12 +35,13 @@ for i in {0..8}; do
     # Use the seed from the seeds array
     seed=${seeds[$i]}
     # Determine mod_id based on the iteration
-    let "mod_id = $i % 3"
+    let "mod_id = $i / 3"
+    let "run = $i % 3"
 
     OUT_FILE=$BASE_DIR/gin_imp_${i}_%j.out
     
     # Launch the Python script with specified parameters
-    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ --msl 3 --ne 3 --mae 1800 --mel 0 --seed $seed --run $i --mod_id $mod_id --load_best 1 > $OUT_FILE 2>&1 &
+    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ --msl 3 --ne 3 --mae 1800 --mel 0 --seed $seed --run $run --mod_id $mod_id --load_best 1 > $OUT_FILE 2>&1 &
 done
 
 # Wait for all background jobs to finish
