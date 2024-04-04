@@ -7,36 +7,41 @@
 #SBATCH --cpus-per-task=18
 #SBATCH --mem=100G
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=bogdan.turbal.y@gmail.com
+#SBATCH --mail-user=your.email@example.com
 #SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/gin_imp_%j.out
 
+# Load modules
 module purge
 module load 2023
 
-cd /gpfs/work4/0/tese0660/projects/transf_learn_attack
-
+# Activate conda environment
 source ~/.bashrc
 conda activate att
 
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/0_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/1_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/2_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/3_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/4_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/5_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/6_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/7_id/
-mkdir /gpfs/work4/0/tese0660/projects/transf_learn_attack/8_id/
+# Base directory
+BASE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/v2"
+CODE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/rai_transfer_learning_attacks"
+#SAVE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack"
+#cd $BASE_DIR
 
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/0_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1 --run 0 --mod_id 0&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/1_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 42 --run 1 --mod_id 0&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/2_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1234 --run 2 --mod_id 0&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/3_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1 --run 0 --mod_id 1&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/4_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 42 --run 1 --mod_id 1&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/5_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1234 --run 2 --mod_id 1&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/6_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1 --run 0 --mod_id 2&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/7_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 42 --run 1 --mod_id 2&
-python /gpfs/work4/0/tese0660/projects/transf_learn_attack/attack_trans.py /gpfs/work4/0/tese0660/projects/transf_learn_attack/8_id/ --msl 2 --ne 2 --mae 1024 --mel 0 --seed 1234 --run 2 --mod_id 2&
+# Define a list of specific seeds
+declare -a seeds=(1 42 1234 1 42 1234 1 42 1234)
 
+# Loop through the list of seeds
+for i in {0..8}; do
+    # Directory creation
+    mkdir -p $BASE_DIR/${i}_id
+    
+    # Use the seed from the seeds array
+    seed=${seeds[$i]}
+    # Determine mod_id based on the iteration
+    let "mod_id = $i % 3"
+
+    OUT_FILE=$BASE_DIR/gin_imp_${i}_%j.out
+    
+    # Launch the Python script with specified parameters
+    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ --msl 3 --ne 3 --mae 1800 --mel 0 --seed $seed --run $i --mod_id $mod_id --load_best 1 > $OUT_FILE 2>&1 &
+done
+
+# Wait for all background jobs to finish
 wait
-

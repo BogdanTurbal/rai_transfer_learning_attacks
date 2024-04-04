@@ -40,6 +40,9 @@ import warnings
 
 import argparse
 
+from sklearn.model_selection import train_test_split
+from datasets import Dataset
+
 class CFG:
     val_split = 0.1
     test_split = 0.1
@@ -148,15 +151,16 @@ class Experiment:
         seed=self.seed,
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        per_device_train_batch_size=32,
+        per_device_eval_batch_size=32,
         num_train_epochs=epochs,
         weight_decay=0.02,
         evaluation_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=load_best_model_at_end,
         push_to_hub=False,
-        metric_for_best_model='f1'#'f1',
+        metric_for_best_model='accuracy',
+        greater_is_better=True
     )
 
     trainer = Trainer(
@@ -200,7 +204,8 @@ class Experiment:
         evaluation_strategy="epoch",
         save_strategy="epoch",
         push_to_hub=False,
-        metric_for_best_model='f1'#'f1',
+        metric_for_best_model='accuracy',
+        greater_is_better=True
     )
 
     trainer = Trainer(
@@ -280,7 +285,7 @@ class CustomAttackerCl:
     #print('heheheheheh'*20)
     attack_args = textattack.AttackArgs(num_examples=n_ex, log_to_csv=out_dir,
                                         checkpoint_interval=None, disable_stdout=True,
-                                        num_workers_per_device=1, query_budget=80,
+                                        num_workers_per_device=2, query_budget=80,
                                         parallel=True)
 
     # Construct the attacker
@@ -394,11 +399,30 @@ def split_dataset(dataset):
       'test': test_valid['test'],
       'valid': test_valid['train']})
     return ds
+  
+def split_and_shuffle_dataset(dataset, stratify_col_name='label', seed=42):
+    df = dataset.to_pandas()
+
+    train_df, test_valid_df = train_test_split(df, test_size=0.2, stratify=df[stratify_col_name], random_state=seed)
+
+    test_df, valid_df = train_test_split(test_valid_df, test_size=0.5, stratify=test_valid_df[stratify_col_name], random_state=seed)
+
+    train_ds = Dataset.from_pandas(train_df).shuffle(seed=seed)
+    test_ds = Dataset.from_pandas(test_df).shuffle(seed=seed)
+    valid_ds = Dataset.from_pandas(valid_df).shuffle(seed=seed)
+
+    ds_dict = DatasetDict({
+        'train': train_ds,
+        'test': test_ds,
+        'valid': valid_ds
+    })
+
+    return ds_dict
     
-def load_datasets(max_ex_len):
-    dataset_linguistic_bias = load_dataset("BogdanTurbal/rai_linguistic_bias_f")
-    dataset_gender_bias = load_dataset("BogdanTurbal/rai_gender_bias_f")
-    dataset_hate_speech = load_dataset("BogdanTurbal/rai_hate_speech_f")
+def load_datasets(max_ex_len, seed=42):
+    dataset_linguistic_bias = load_dataset("BogdanTurbal/rai_linguistic_bias_f").shuffle(seed=seed)
+    dataset_gender_bias = load_dataset("BogdanTurbal/rai_gender_bias_f").shuffle(seed=seed)
+    dataset_hate_speech = load_dataset("BogdanTurbal/rai_hate_speech_f").shuffle(seed=seed)
     
     if max_ex_len != 0:
         dataset_linguistic_bias['train'] = dataset_linguistic_bias['train'].select(range(max_ex_len))
@@ -406,9 +430,9 @@ def load_datasets(max_ex_len):
         dataset_hate_speech['train'] = dataset_hate_speech['train'].select(range(max_ex_len))
         
 
-    dataset_linguistic_bias = split_dataset(dataset_linguistic_bias['train'])
-    dataset_gender_bias = split_dataset(dataset_gender_bias['train'])
-    dataset_hate_speech = split_dataset(dataset_hate_speech['train'])
+    dataset_linguistic_bias = split_and_shuffle_dataset(dataset_linguistic_bias['train'])
+    dataset_gender_bias = split_and_shuffle_dataset(dataset_gender_bias['train'])
+    dataset_hate_speech = split_and_shuffle_dataset(dataset_hate_speech['train'])
 
     datasets = [('rai_linguistic_bias', dataset_linguistic_bias), ('rai_gender_bias', dataset_gender_bias), ('rai_hate_speech', dataset_hate_speech)]
     
@@ -418,6 +442,7 @@ def args_parser():
     parser = argparse.ArgumentParser(description="Argument parser")
     
     parser.add_argument("cr_d", help="Current dir")
+    parser.add_argument("sr_d", help="Save dir")
     parser.add_argument("--msl", help="Sqn len", default=2, type=int)
     parser.add_argument("--ne", help="Num epochs", default=2, type=int)
     parser.add_argument("--mae", help="Max attack examples", default=1024, type=int)
@@ -425,6 +450,7 @@ def args_parser():
     parser.add_argument("--seed", help="Seed", default=42, type=int)
     parser.add_argument("--run", help="Run", default=0, type=int)
     parser.add_argument("--mod_id", help="Model id", default=0, type=int)
+    parser.add_argument("--load_best", help="Load best epoch", default=0, type=int)
     
     return parser.parse_args()
     #parser.add_argument("--optional-arg", help="Optional argument", default="default value")
@@ -435,24 +461,18 @@ def save_data(current_dir, exp, model, run):
   with open(f'{current_dir}models_paths_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.models_paths, file)
 
-  #time.sleep(10)
-
   with open(f'{current_dir}model_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.model_results, file)
-
-  #time.sleep(10)
 
   with open(f'{current_dir}attack_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.attack_results, file)
 
-  #time.sleep(10)
 
-  #time.sleep(10)
-  
 def main():
     set_configs()
     args = args_parser()
     current_dir = args.cr_d
+    save_dir = args.sr_d
     num_epochs = args.ne
     max_len = args.msl
     max_attack_ex = args.mae
@@ -460,6 +480,7 @@ def main():
     seed = args.seed
     run = args.run
     model_id = args.mod_id
+    load_best_model_at_end = (args.load_best == 1)
     
     datasets = load_datasets(max_examples_num)
     
@@ -470,10 +491,10 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run)
+        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
         exp.run_experiment()
 
-        save_data(current_dir, exp, model, run)
+        save_data(save_dir, exp, model, run)
 
 if __name__ == "__main__":
     main()
