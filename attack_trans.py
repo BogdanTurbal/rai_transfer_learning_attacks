@@ -365,15 +365,6 @@ class BasicCLExperiment(Experiment):
     return list(itertools.permutations(range(len(self.datasets)), m))
 
   def run_experiment(self):
-    wandb.init(project="rai_trans_experiment", config={
-        "epochs": self.base_epochs,
-        "model_name": self.model_name,
-        "training_method": self.training_method,
-        "max_attack_ex": self.max_attack_ex,
-        "run": self.run,
-        "seed": self.seed
-    })
-    
     self._ensure_folder_structure()
 
     for sqn in self.sequences:
@@ -503,9 +494,19 @@ def save_data(current_dir, exp, model, run):
   with open(f'{current_dir}attack_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.attack_results, file)
 
-def init_configs():
+def init_configs(base_epochs, model_name, training_method, max_attack_ex, max_ex, run, seed):
   pynvml.nvmlInit()
   wandb.login(key="3f6581f87b267c4d2f5d0cac29894fcee4a9fc8d")
+  
+  wandb.init(project="rai_trans_experiment", config={
+        "epochs": base_epochs,
+        "model_name": model_name,
+        "training_method": training_method,
+        "max_attack_ex": max_attack_ex,
+        "max_ex": max_ex, 
+        "run": run,
+        "seed": seed
+    })
 
 def monitor_resources():
     while True:
@@ -514,9 +515,6 @@ def monitor_resources():
         time.sleep(60)
 
 def main():
-    monitor_thread = Thread(target=monitor_resources, daemon=True)
-    monitor_thread.start()
-    
     set_configs()
     args = args_parser()
     current_dir = args.cr_d
@@ -529,6 +527,10 @@ def main():
     run = args.run
     model_id = args.mod_id
     load_best_model_at_end = (args.load_best == 1)
+    
+    init_configs(num_epochs, CFG.models[model_id], 'u', max_attack_ex, max_examples_num, run, seed)
+    monitor_thread = Thread(target=monitor_resources, daemon=True)
+    monitor_thread.start()
     
     datasets = load_datasets(max_examples_num)
     
