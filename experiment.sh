@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=18
 #SBATCH --mem=100G
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=your.email@example.com
+#SBATCH --mail-user=bogdan.turbal.y@gmail.com
 #SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/v2/gin_imp_%j.out
 
 # Load modules
