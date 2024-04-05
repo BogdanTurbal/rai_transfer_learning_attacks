@@ -43,6 +43,30 @@ import argparse
 from sklearn.model_selection import train_test_split
 from datasets import Dataset
 
+import wandb
+
+import psutil
+
+import time
+from threading import Thread
+
+import pynvml
+
+def log_system_metrics():
+    ram_usage = psutil.virtual_memory().percent  # Get RAM usage in percentage
+    wandb.log({"RAM Usage (%)": ram_usage})
+
+
+def log_gpu_metrics():
+    device_count = pynvml.nvmlDeviceGetCount()
+    for i in range(device_count):
+        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        gpu_mem_usage = (mem_info.used / mem_info.total) * 100  # GPU memory usage in percentage
+        gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle).gpu  # GPU utilization in percentage
+        wandb.log({f"GPU {i} Memory Usage (%)": gpu_mem_usage, f"GPU {i} Utilization (%)": gpu_util})
+
+
 class CFG:
     val_split = 0.1
     test_split = 0.1
@@ -219,6 +243,7 @@ class Experiment:
     )
 
     eval_result = trainer.evaluate(tokenized_dataset["test"])
+    wandb.log(eval_result)
 
     print(f'Finished evaluating: \n')
 
@@ -305,6 +330,7 @@ class CustomAttackerCl:
     attacker, out_dir_file = self.build_a2t_attack(model_name, model_wrapper, dataset_small, dataset_name, n_ex)
     attacker.attack_dataset()
     results = self.compute_stats(out_dir_file)
+    wandb.log(results)
 
     del attacker
     del dataset_small
@@ -327,6 +353,7 @@ class BasicCLExperiment(Experiment):
     self.max_attack_ex = max_attack_ex
     self.epochs = epochs
     self.seed = seed
+    self.run = run
 
   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
     cust_attacker = CustomAttackerCl(outdir=outdir)
@@ -338,6 +365,15 @@ class BasicCLExperiment(Experiment):
     return list(itertools.permutations(range(len(self.datasets)), m))
 
   def run_experiment(self):
+    wandb.init(project="rai_trans_experiment", config={
+        "epochs": self.base_epochs,
+        "model_name": self.model_name,
+        "training_method": self.training_method,
+        "max_attack_ex": self.max_attack_ex,
+        "run": self.run,
+        "seed": self.seed
+    })
+    
     self._ensure_folder_structure()
 
     for sqn in self.sequences:
@@ -467,8 +503,20 @@ def save_data(current_dir, exp, model, run):
   with open(f'{current_dir}attack_results_{model_n}_{run}.pkl', 'wb') as file:
     pickle.dump(exp.exp_logger.attack_results, file)
 
+def init_configs():
+  pynvml.nvmlInit()
+  wandb.login(key="3f6581f87b267c4d2f5d0cac29894fcee4a9fc8d")
+
+def monitor_resources():
+    while True:
+        log_system_metrics()
+        log_gpu_metrics()
+        time.sleep(60)
 
 def main():
+    monitor_thread = Thread(target=monitor_resources, daemon=True)
+    monitor_thread.start()
+    
     set_configs()
     args = args_parser()
     current_dir = args.cr_d
