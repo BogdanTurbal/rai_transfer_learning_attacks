@@ -28,7 +28,7 @@ CODE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/rai_transfer_learn
 declare -a seeds=(1 42 1234 1 42 1234 1 42 1234)
 
 # Loop through the list of seeds
-for i in {0..8}; do
+for i in {0..2}; do
     # Directory creation
     mkdir -p $BASE_DIR/${i}_id
     
