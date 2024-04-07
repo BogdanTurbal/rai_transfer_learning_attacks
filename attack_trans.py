@@ -183,7 +183,7 @@ class Experiment:
         save_strategy="epoch",
         load_best_model_at_end=load_best_model_at_end,
         push_to_hub=False,
-        metric_for_best_model='accuracy',
+        metric_for_best_model='f1',
         greater_is_better=True
     )
 
@@ -432,7 +432,7 @@ def split_and_shuffle_dataset(dataset, stratify_col_name='label', seed=42):
 
     train_df, test_valid_df = train_test_split(df, test_size=0.2, stratify=df[stratify_col_name], random_state=seed)
 
-    test_df, valid_df = train_test_split(test_valid_df, test_size=0.5, stratify=test_valid_df[stratify_col_name], random_state=seed)
+    test_df, valid_df = train_test_split(test_valid_df, test_size=1 - 0.325, stratify=test_valid_df[stratify_col_name], random_state=seed)
 
     train_ds = Dataset.from_pandas(train_df).shuffle(seed=seed)
     test_ds = Dataset.from_pandas(test_df).shuffle(seed=seed)
@@ -447,9 +447,9 @@ def split_and_shuffle_dataset(dataset, stratify_col_name='label', seed=42):
     return ds_dict
     
 def load_datasets(max_ex_len, seed=42):
-    dataset_linguistic_bias = load_dataset("BogdanTurbal/rai_linguistic_bias_f").shuffle(seed=seed)
-    dataset_gender_bias = load_dataset("BogdanTurbal/rai_gender_bias_f").shuffle(seed=seed)
-    dataset_hate_speech = load_dataset("BogdanTurbal/rai_hate_speech_f").shuffle(seed=seed)
+    dataset_linguistic_bias = load_dataset("BogdanTurbal/rai_linguistic_bias_v_2").shuffle(seed=seed)
+    dataset_gender_bias = load_dataset("BogdanTurbal/rai_ag_news_0_3_v_2").shuffle(seed=seed)
+    dataset_hate_speech = load_dataset("BogdanTurbal/rai_hate_speech_v_2").shuffle(seed=seed)
     
     if max_ex_len != 0:
         dataset_linguistic_bias['train'] = dataset_linguistic_bias['train'].select(range(max_ex_len))
