@@ -198,6 +198,13 @@ class Experiment:
     )
 
     trainer.train()
+    
+    best_model_path = trainer.state.best_model_checkpoint
+
+    # Extract epoch from path (implementation might vary based on library)
+    best_epoch = int(best_model_path.split("/")[-1].split("-")[-1])  # Assuming path format includes epoch number
+
+    print(f'Best model found at epoch: {best_epoch}')
 
     path_to_save = os.path.join(self.models_directory, model_name)
     print(f'Saving path: {path_to_save}')
