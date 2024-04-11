@@ -52,6 +52,8 @@ from threading import Thread
 
 import pynvml
 
+from copy import deepcopy
+
 def log_system_metrics():
     ram_usage = psutil.virtual_memory().percent  # Get RAM usage in percentage
     wandb.log({"RAM Usage (%)": ram_usage})
@@ -163,7 +165,7 @@ class Experiment:
       if not os.path.exists(dir):
         os.makedirs(dir)
 
-  def train_model(self, model, model_name, tokenizer, dataset, epochs=4, load_best_model_at_end=True):
+  def train_model(self, model, model_name, tokenizer, dataset, epochs=4, load_best_model_at_end=True, train_part = 'train', save=True):
     print(f'Model: {model_name} Started training:')
     print('<' * 40 + '\n')
 
@@ -190,7 +192,7 @@ class Experiment:
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=tokenized_dataset["train"],
+        train_dataset=tokenized_dataset[train_part],
         eval_dataset=tokenized_dataset["valid"],
         tokenizer=tokenizer,
         data_collator=data_collator,
@@ -203,11 +205,11 @@ class Experiment:
     path_to_save = os.path.join(self.models_directory, model_name)
     print(f'Saving path: {path_to_save}')
 
-    if not os.path.exists(path_to_save):
-      os.makedirs(path_to_save)
-
-    model.save_pretrained(path_to_save)
-    self.exp_logger.add_model_path(model_name, path_to_save)
+    if save:
+      if not os.path.exists(path_to_save):
+        os.makedirs(path_to_save)
+      model.save_pretrained(path_to_save)
+      self.exp_logger.add_model_path(model_name, path_to_save)
     print(f'Finished training:')
     print('>' * 40 + '\n')
     return model
@@ -411,6 +413,80 @@ class BasicCLExperiment(Experiment):
         else:
           print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
           
+class BasicModCLExperiment(Experiment):
+  def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+    super().__init__(base_directory, datasets, model_name, run, seed)
+    self.base_epochs = base_epochs
+    self.sequences = self._generate_sequences(base_len)
+
+    self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    #self.model_paths = {}
+    self.training_method = training_method
+    self.load_best_model_at_end = load_best_model_at_end
+    self.max_attack_ex = max_attack_ex
+    self.epochs = epochs
+    self.seed = seed
+    self.run = run
+
+  def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
+    cust_attacker = CustomAttackerCl(outdir=outdir)
+    dataset = dataset['test']
+    results, name = cust_attacker.attack(model, model_name, tokenizer, dataset, dataset_name, max_attack_ex=self.max_attack_ex)
+    return results, name
+
+  def _generate_sequences(self, m):
+    return list(itertools.permutations(range(len(self.datasets)), m))
+
+  def run_experiment(self):
+    self._ensure_folder_structure()
+
+    for sqn in self.sequences:
+      model = AutoModelForSequenceClassification.from_pretrained(
+            self.model_name, num_labels=2, ignore_mismatched_sizes=True,
+      )
+
+      for i, dataset_idx in enumerate(sqn):
+        dataset_name = self.datasets[dataset_idx][0]
+        dataset = self.datasets[dataset_idx][1]
+        print(i)
+
+        model_name = self._get_model_name(sqn[:i + 1], self.training_method[:i + 1], self.epochs[:i + 1], self.run)#self._get_model_name(sqn, i)
+
+        print(model_name)
+        
+        cust_attacker = CustomAttackerCl()
+        attack_name = cust_attacker._get_name()
+
+        if model_name in self.exp_logger.models_paths:
+          print('-'*20 + 'Decision: Loading model \n')
+          abs_path = os.path.join(self.models_directory, model_name)
+          del model
+
+          model = AutoModelForSequenceClassification.from_pretrained(
+            abs_path, num_labels=2, ignore_mismatched_sizes=True
+          )
+          print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
+          
+        else:
+          print('-'*20 + 'Decision: Training small dataset model \n')
+          model_c = deepcopy(model)
+          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=3, load_best_model_at_end=True, train_part='train_small', save=False)
+
+          print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
+          results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
+          self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
+          
+          print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
+          result, attack_name = self.attack_model(model_c, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
+          self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
+          
+          print('-'*20 + 'Decision: Training full dataset model with saving\n')
+          
+          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
+          
+          print('-'*20 + 'Decision: Finished\n')
+        
+          
 def set_configs():
     access_token = "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"
     wandb_api_key = '3f6581f87b267c4d2f5d0cac29894fcee4a9fc8d'
@@ -463,6 +539,16 @@ def load_datasets(max_ex_len, seed=42):
     dataset_hate_speech = split_and_shuffle_dataset(dataset_hate_speech['train'])
 
     datasets = [('rai_linguistic_bias', dataset_linguistic_bias), ('rai_gender_bias', dataset_gender_bias), ('rai_hate_speech', dataset_hate_speech)]
+    
+    return datasets
+  
+def load_datasets_new(max_ex_len, seed=42):
+    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_1_0_p_1")
+    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_1_0_p_2")
+    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_1_0_p_1")
+    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_1_0_p_2")
+    
+    datasets = [('yalp_1', dataset_1), ('yalp_2', dataset_2), ('ag_news_1', dataset_3), ('ag_news_2', dataset_4)]
     
     return datasets
     
@@ -530,10 +616,11 @@ def main():
     load_best_model_at_end = (args.load_best == 1)
     
     init_configs(num_epochs, CFG.models[model_id], 'u', max_attack_ex, max_examples_num, run, seed)
-    monitor_thread = Thread(target=monitor_resources, daemon=True)
-    monitor_thread.start()
+    #monitor_thread = Thread(target=monitor_resources, daemon=True)
+    #monitor_thread.start()
     
-    datasets = load_datasets(max_examples_num)
+    #datasets = load_datasets(max_examples_num)
+    datasets = load_datasets_new(max_examples_num)
     
     print("Used datasets:")
     print(datasets)
@@ -542,7 +629,7 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
+        exp = BasicModCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
         exp.run_experiment()
 
         save_data(save_dir, exp, model, run)
