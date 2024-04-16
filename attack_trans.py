@@ -543,10 +543,10 @@ def load_datasets(max_ex_len, seed=42):
     return datasets
   
 def load_datasets_new(max_ex_len, seed=42):
-    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_1_0_p_1")
-    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_1_0_p_2")
-    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_1_0_p_1")
-    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_1_0_p_2")
+    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_2_0_p_1")
+    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_2_0_p_2")
+    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_2_0_p_1")
+    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_2_0_p_2")
     
     datasets = [('yalp_1', dataset_1), ('yalp_2', dataset_2), ('ag_news_1', dataset_3), ('ag_news_2', dataset_4)]
     
