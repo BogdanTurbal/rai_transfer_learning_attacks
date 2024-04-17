@@ -8,7 +8,7 @@
 #SBATCH --mem=160G
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=bogdan.turbal.y@gmail.com
-#SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/v8/gin_imp_%j.out
+#SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/v9/gin_imp_%j.out
 
 # Load modules
 module purge
@@ -19,7 +19,7 @@ source ~/.bashrc
 conda activate att
 
 # Base directory
-BASE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/v8"
+BASE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/v9"
 CODE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/rai_transfer_learning_attacks"
 #SAVE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack"
 #cd $BASE_DIR
@@ -28,7 +28,7 @@ CODE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/rai_transfer_learn
 declare -a seeds=(1 42 1234 1 42 1234 1 42 1234)
 
 # Loop through the list of seeds
-for i in {6..8}; do
+for i in {3..5}; do
     # Directory creation
     mkdir -p $BASE_DIR/${i}_id
     

@@ -470,7 +470,7 @@ class BasicModCLExperiment(Experiment):
         else:
           print('-'*20 + 'Decision: Training small dataset model \n')
           model_c = deepcopy(model)
-          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=6, load_best_model_at_end=True, train_part='train_xsmall', save=False)
+          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=8, load_best_model_at_end=True, train_part='train_small', save=False)
 
           print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
           results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
@@ -482,7 +482,7 @@ class BasicModCLExperiment(Experiment):
           
           print('-'*20 + 'Decision: Training full dataset model with saving\n')
           
-          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=1, load_best_model_at_end=False)
+          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
           
           print('-'*20 + 'Decision: Finished\n')
         
