@@ -470,7 +470,7 @@ class BasicModCLExperiment(Experiment):
         else:
           print('-'*20 + 'Decision: Training small dataset model \n')
           model_c = deepcopy(model)
-          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=3, load_best_model_at_end=True, train_part='train_small', save=False)
+          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=3, load_best_model_at_end=True, train_part='train_xsmall', save=False)
 
           print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
           results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
@@ -482,7 +482,7 @@ class BasicModCLExperiment(Experiment):
           
           print('-'*20 + 'Decision: Training full dataset model with saving\n')
           
-          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
+          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=1, load_best_model_at_end=False)
           
           print('-'*20 + 'Decision: Finished\n')
         
@@ -543,10 +543,10 @@ def load_datasets(max_ex_len, seed=42):
     return datasets
   
 def load_datasets_new(max_ex_len, seed=42):
-    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_2_0_p_1")
-    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_2_0_p_2")
-    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_2_0_p_1")
-    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_2_0_p_2")
+    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_2_1_p_1")
+    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_2_1_p_2")
+    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_2_1_p_1")
+    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_2_1_p_2")
     
     datasets = [('yalp_1', dataset_1), ('yalp_2', dataset_2), ('ag_news_1', dataset_3), ('ag_news_2', dataset_4)]
     
