@@ -72,7 +72,7 @@ def log_gpu_metrics():
 class CFG:
     val_split = 0.1
     test_split = 0.1
-    models = ['google-bert/bert-base-uncased', 'microsoft/MiniLM-L12-H384-uncased', 'google/electra-small-discriminator']
+    models = ['google-bert/bert-base-uncased', 'FacebookAI/roberta-base', 'google/electra-small-discriminator']#microsoft/MiniLM-L12-H384-uncased
     models_dir = 'models'
     logs_dir = 'logs'
     data_dir = 'datasets'
