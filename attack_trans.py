@@ -142,15 +142,28 @@ class Experiment:
   @classmethod
   def compute_metrics(cls, eval_pred):
     logits, labels = eval_pred
+
+    # Convert logits to probabilities
+    probabilities = np.exp(logits) / np.sum(np.exp(logits), axis=1, keepdims=True)
+        
+    # Find the maximum probability class
     predictions = np.argmax(logits, axis=-1)
+        
+    # Compute basic metrics
     acc = accuracy_score(labels, predictions)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='binary')
+        
+    # Calculate how "unsure" the model is
+    probs_class_of_interest = probabilities[:, 1]  # Assuming the '1' class is the class of interest
+    mean_unsure = np.mean(np.abs(probs_class_of_interest - 0.5))
+        
     return {
-        'accuracy': acc,
-        'f1': f1,
-        'precision': precision,
-        'recall': recall
-    }
+            'accuracy': acc,
+            'f1': f1,
+            'precision': precision,
+            'recall': recall,
+            'mean_unsure': mean_unsure  # This is the new metric added
+        }
 
   def _get_model_name(self, datasets, train_methods, epochs, run):
     sqns = []
@@ -178,15 +191,15 @@ class Experiment:
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
         per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
+        per_device_eval_batch_size=64,
         num_train_epochs=epochs,
         weight_decay=0.02,
         evaluation_strategy="epoch",
         save_strategy="epoch",
         load_best_model_at_end=load_best_model_at_end,
         push_to_hub=False,
-        metric_for_best_model='f1',
-        greater_is_better=True
+        metric_for_best_model='eval_loss',
+        greater_is_better=False
     )
 
     trainer = Trainer(
@@ -225,14 +238,14 @@ class Experiment:
     training_args = TrainingArguments(
         output_dir=self.tmp_directory,
         learning_rate=2e-5,
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=32,
+        per_device_train_batch_size=64,
+        per_device_eval_batch_size=64,
         weight_decay=0.01,
         evaluation_strategy="epoch",
         save_strategy="epoch",
         push_to_hub=False,
-        metric_for_best_model='accuracy',
-        greater_is_better=True
+        metric_for_best_model='eval_loss',
+        greater_is_better=False
     )
 
     trainer = Trainer(
@@ -414,7 +427,7 @@ class BasicCLExperiment(Experiment):
           print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
           
 class BasicModCLExperiment(Experiment):
-  def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+  def __init__(self, base_directory, datasets, model_name, end_train_part, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
     super().__init__(base_directory, datasets, model_name, run, seed)
     self.base_epochs = base_epochs
     self.sequences = self._generate_sequences(base_len)
@@ -427,6 +440,7 @@ class BasicModCLExperiment(Experiment):
     self.epochs = epochs
     self.seed = seed
     self.run = run
+    self.end_train_part = end_train_part
 
   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
     cust_attacker = CustomAttackerCl(outdir=outdir)
@@ -470,7 +484,7 @@ class BasicModCLExperiment(Experiment):
         else:
           print('-'*20 + 'Decision: Training small dataset model \n')
           model_c = deepcopy(model)
-          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=8, load_best_model_at_end=True, train_part='train_small', save=False)
+          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=self.base_epochs, load_best_model_at_end=True, train_part=self.end_train_part, save=False)
 
           print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
           results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
@@ -480,11 +494,13 @@ class BasicModCLExperiment(Experiment):
           result, attack_name = self.attack_model(model_c, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
           self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
           
-          print('-'*20 + 'Decision: Training full dataset model with saving\n')
           
-          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
-          
-          print('-'*20 + 'Decision: Finished\n')
+          if i < len(sqn) - 1:
+            print('-'*20 + 'Decision: Training full dataset model with saving\n')
+            model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
+            print('-'*20 + 'Decision: Finished\n')
+          else:
+            print('-'*20 + 'Decision: Skipped full dataset model with saving\n')
         
           
 def set_configs():
@@ -542,21 +558,28 @@ def load_datasets(max_ex_len, seed=42):
     
     return datasets
   
-def load_datasets_new(max_ex_len, seed=42):
-    dataset_1 = load_dataset("BogdanTurbal/yalp_review_v_2_1_p_1")
-    dataset_2 = load_dataset("BogdanTurbal/yalp_review_v_2_1_p_2")
-    dataset_3 = load_dataset("BogdanTurbal/ag_news_v_2_1_p_1")
-    dataset_4 = load_dataset("BogdanTurbal/ag_news_v_2_1_p_2")
+def load_datasets_new(dataset_names = ["BogdanTurbal/yalp_review_v_2_1_p_1", "BogdanTurbal/yalp_review_v_2_1_p_2", "BogdanTurbal/ag_news_v_2_1_p_1", "BogdanTurbal/ag_news_v_2_1_p_2"]):
+    dataset_1 = load_dataset(dataset_names[0])
+    dataset_2 = load_dataset(dataset_names[1])
+    dataset_3 = load_dataset(dataset_names[2])
+    dataset_4 = load_dataset(dataset_names[3])
     
-    datasets = [('yalp_1', dataset_1), ('yalp_2', dataset_2), ('ag_news_1', dataset_3), ('ag_news_2', dataset_4)]
+    names = [x.split('/')[-1] for x in dataset_names]
+    
+    datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[2], dataset_3), (names[3], dataset_4)]
     
     return datasets
-    
+  
+def list_of_ints(arg):
+    return list(arg.split(','))
+  
 def args_parser():
     parser = argparse.ArgumentParser(description="Argument parser")
     
     parser.add_argument("cr_d", help="Current dir")
     parser.add_argument("sr_d", help="Save dir")
+    parser.add_argument("--list_data", help="List of datasets in the format: dataset1,dataset2,...", type=list_of_ints)
+    parser.add_argument("--tr_end_prt", help="Part for end training", type=str, default='train_small')
     parser.add_argument("--msl", help="Sqn len", default=2, type=int)
     parser.add_argument("--ne", help="Num epochs", default=2, type=int)
     parser.add_argument("--mae", help="Max attack examples", default=1024, type=int)
@@ -614,13 +637,16 @@ def main():
     run = args.run
     model_id = args.mod_id
     load_best_model_at_end = (args.load_best == 1)
+    datasets_names = args.list_data
+    train_end_part = args.tr_end_prt
+    
     
     init_configs(num_epochs, CFG.models[model_id], 'u', max_attack_ex, max_examples_num, run, seed)
     #monitor_thread = Thread(target=monitor_resources, daemon=True)
     #monitor_thread.start()
     
     #datasets = load_datasets(max_examples_num)
-    datasets = load_datasets_new(max_examples_num)
+    datasets = load_datasets_new(datasets_names)
     
     print("Used datasets:")
     print(datasets)
@@ -629,7 +655,7 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicModCLExperiment(current_dir, datasets, model, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
+        exp = BasicModCLExperiment(current_dir, datasets, model, train_end_part, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
         exp.run_experiment()
 
         save_data(save_dir, exp, model, run)

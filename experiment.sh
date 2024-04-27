@@ -41,7 +41,9 @@ for i in {3..5}; do
     OUT_FILE=$BASE_DIR/gin_imp_${i}_%j.out
     
     # Launch the Python script with specified parameters
-    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ --msl 2 --ne 3 --mae 2000 --mel 0 --seed $seed --run $run --mod_id $mod_id --load_best 1 > $OUT_FILE 2>&1 &
+    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ \
+    --list_data BogdanTurbal/yalp_review_v_3_2_p_1,BogdanTurbal/yalp_review_v_3_2_p_2,BogdanTurbal/ag_news_v_3_2_p_1,BogdanTurbal/ag_news_v_3_2_p_2 \
+    --msl 2 --ne 4 --mae 2000 --mel 0 --seed $seed --run $run --mod_id $mod_id --load_best 1 > $OUT_FILE 2>&1 &
 done
 
 # Wait for all background jobs to finish
