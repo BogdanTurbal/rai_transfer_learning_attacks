@@ -282,7 +282,7 @@ class CustomAttackerCl:
     original_output = np.array(df['original_output'])
     perturbed_output = np.array(df['perturbed_output'])
     
-    original_score = np.array(df['v1_rob_bs'])
+    original_score = np.array(df['original_score'])
     mean_uncertainty = np.mean(np.abs(original_score - 0.5))
 
     # Compute accuracy for original and perturbed outputs
