@@ -338,7 +338,7 @@ class CustomAttackerCl:
       attack.transformation.max_candidates = 4
       attack.constraints[0].max_percent = 0.2
       
-    attack = self.attack_method.build(model_wrapper, mlm=False)
+    #attack = self.attack_method.build(model_wrapper, mlm=False)
     #num_examples = n_ex
     # Set up file naming
     #name = f'a2t_attack\|n_{num_examples}\|m_{model_name}\|d_{dataset_name}'
