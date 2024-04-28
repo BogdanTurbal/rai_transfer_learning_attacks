@@ -155,14 +155,14 @@ class Experiment:
         
     # Calculate how "unsure" the model is
     probs_class_of_interest = probabilities[:, 1]  # Assuming the '1' class is the class of interest
-    mean_unsure = np.mean(np.abs(probs_class_of_interest - 0.5))
+    mean_uncertainty = np.mean(np.abs(probs_class_of_interest - 0.5))
         
     return {
             'accuracy': acc,
             'f1': f1,
             'precision': precision,
             'recall': recall,
-            'mean_unsure': mean_unsure  # This is the new metric added
+            'mean_uncertainty': mean_uncertainty  # This is the new metric added
         }
 
   def _get_model_name(self, datasets, train_methods, epochs, run):
@@ -281,6 +281,9 @@ class CustomAttackerCl:
     ground_truth_output = np.array(df['ground_truth_output'])
     original_output = np.array(df['original_output'])
     perturbed_output = np.array(df['perturbed_output'])
+    
+    original_score = np.array(df['v1_rob_bs'])
+    mean_uncertainty = np.mean(np.abs(original_score - 0.5))
 
     # Compute accuracy for original and perturbed outputs
     original_accuracy = accuracy_score(ground_truth_output, original_output)
@@ -308,7 +311,8 @@ class CustomAttackerCl:
         'perturbed_recall': perturbed_recall,
         'perturbed_f1': perturbed_f1,
         'attack_success_rate': attack_success_rate,
-        'mean_queries': mean_queries
+        'mean_queries': mean_queries,
+        'mean_uncertainty':mean_uncertainty
     }
 
   def _get_name(self):
