@@ -322,7 +322,8 @@ class CustomAttackerCl:
         'perturbed_f1': perturbed_f1,
         'attack_success_rate': attack_success_rate,
         'mean_queries': mean_queries,
-        'mean_uncertainty':mean_uncertainty
+        'mean_uncertainty':mean_uncertainty,
+        'attack_ex': df.to_dict('list')
     }
 
   def _get_name(self):
@@ -369,12 +370,14 @@ class CustomAttackerCl:
     attacker, out_dir_file = self.build_a2t_attack(model_name, model_wrapper, dataset_small, dataset_name, n_ex)
     attacker.attack_dataset()
     results = self.compute_stats(out_dir_file)
+    data = deepcopy(results['attack_ex'])
+    del results['attack_ex']
     wandb.log(results)
 
     del attacker
     del dataset_small
 
-    return results, self._get_name()
+    return results, self._get_name(), data
 
 
 #@title Experiment: Basic experiment
@@ -515,7 +518,8 @@ class BasicModCLExperiment(Experiment):
           self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
           
           print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
-          result, attack_name = self.attack_model(model_c, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
+          result, attack_name, data = self.attack_model(model_c, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
+          result['data_att'] = data
           self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
           
           
