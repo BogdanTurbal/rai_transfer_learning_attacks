@@ -453,7 +453,7 @@ class BasicCLExperiment(Experiment):
           print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
           
 class BasicModCLExperiment(Experiment):
-  def __init__(self, base_directory, datasets, model_name, end_train_part, attack_method, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+  def __init__(self, base_directory, datasets, model_name, end_train_part, attack_method, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, num_pre_epoch=2, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
     super().__init__(base_directory, datasets, model_name, run, seed)
     self.base_epochs = base_epochs
     self.sequences = self._generate_sequences(base_len)
@@ -468,6 +468,7 @@ class BasicModCLExperiment(Experiment):
     self.run = run
     self.end_train_part = end_train_part
     self.attack_method = attack_method
+    self.num_pre_epoch = num_pre_epoch
 
   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
     cust_attacker = CustomAttackerCl(self.attack_method, outdir=outdir)
@@ -525,7 +526,7 @@ class BasicModCLExperiment(Experiment):
           
           if i < len(sqn) - 1:
             print('-'*20 + 'Decision: Training full dataset model with saving\n')
-            model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=2, load_best_model_at_end=False)
+            model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.num_pre_epoch, load_best_model_at_end=False)
             print('-'*20 + 'Decision: Finished\n')
           else:
             print('-'*20 + 'Decision: Skipped full dataset model with saving\n')
@@ -611,6 +612,7 @@ def args_parser():
     parser.add_argument("--att_m", help="Attack method", default=1, type=int)
     parser.add_argument("--msl", help="Sqn len", default=2, type=int)
     parser.add_argument("--ne", help="Num epochs", default=2, type=int)
+    parser.add_argument("--npe", help="Num pre epochs", default=2, type=int)
     parser.add_argument("--mae", help="Max attack examples", default=1024, type=int)
     parser.add_argument("--mel", help="Max num of examples in dataset", default=0, type=int)
     parser.add_argument("--seed", help="Seed", default=42, type=int)
@@ -659,6 +661,7 @@ def main():
     current_dir = args.cr_d
     save_dir = args.sr_d
     num_epochs = args.ne
+    num_pre_epoch = args.npe
     max_len = args.msl
     max_attack_ex = args.mae
     max_examples_num = args.mel
@@ -685,7 +688,7 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicModCLExperiment(current_dir, datasets, model, train_end_part, attack_method, seed=seed, base_epochs=num_epochs, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
+        exp = BasicModCLExperiment(current_dir, datasets, model, train_end_part, attack_method, seed=seed, base_epochs=num_epochs, num_pre_epoch=num_pre_epoch, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
         exp.run_experiment()
 
         save_data(save_dir, exp, model, run)
