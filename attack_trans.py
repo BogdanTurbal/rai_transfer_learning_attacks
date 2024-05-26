@@ -595,7 +595,8 @@ def load_datasets_new(dataset_names = ["BogdanTurbal/yalp_review_v_2_1_p_1", "Bo
     
     names = [x.split('/')[-1] for x in dataset_names]
     
-    datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[2], dataset_3), (names[3], dataset_4)]
+    #datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[2], dataset_3), (names[3], dataset_4)]
+    datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[3], dataset_4)]
     
     return datasets
   
