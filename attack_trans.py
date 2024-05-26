@@ -518,6 +518,7 @@ class BasicModCLExperiment(Experiment):
           results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
           self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
           
+          
           print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
           result, attack_name, data = self.attack_model(model_c, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
           result['data_att'] = data
@@ -529,6 +530,11 @@ class BasicModCLExperiment(Experiment):
             model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.num_pre_epoch, load_best_model_at_end=False)
             print('-'*20 + 'Decision: Finished\n')
           else:
+            dataset_name = self.datasets[sqn[i - 1]][0]
+            dataset = self.datasets[sqn[i - 1]][1]
+            print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
+            results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
+            self.exp_logger.add_model_result(model_name, sqn[i - 1], results, 'test')
             print('-'*20 + 'Decision: Skipped full dataset model with saving\n')
         
           
@@ -610,7 +616,7 @@ def args_parser():
     parser.add_argument("sr_d", help="Save dir")
     parser.add_argument("--list_data", help="List of datasets in the format: dataset1,dataset2,...", type=list_of_ints)
     parser.add_argument("--tr_end_prt", help="Part for end training", type=str, default='train_small')
-    parser.add_argument("--att_m", help="Attack method", default=1, type=int)
+    parser.add_argument("--att_m", help="Attack method", default=0, type=int)
     parser.add_argument("--msl", help="Sqn len", default=2, type=int)
     parser.add_argument("--ne", help="Num epochs", default=2, type=int)
     parser.add_argument("--npe", help="Num pre epochs", default=2, type=int)
