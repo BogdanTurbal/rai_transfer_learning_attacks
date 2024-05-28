@@ -382,75 +382,75 @@ class CustomAttackerCl:
 
 #@title Experiment: Basic experiment
 
-class BasicCLExperiment(Experiment):
-  def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
-    super().__init__(base_directory, datasets, model_name, run, seed)
-    self.base_epochs = base_epochs
-    self.sequences = self._generate_sequences(base_len)
+# class BasicCLExperiment(Experiment):
+#   def __init__(self, base_directory, datasets, model_name, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+#     super().__init__(base_directory, datasets, model_name, run, seed)
+#     self.base_epochs = base_epochs
+#     self.sequences = self._generate_sequences(base_len)
 
-    self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-    #self.model_paths = {}
-    self.training_method = training_method
-    self.load_best_model_at_end = load_best_model_at_end
-    self.max_attack_ex = max_attack_ex
-    self.epochs = epochs
-    self.seed = seed
-    self.run = run
+#     self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+#     #self.model_paths = {}
+#     self.training_method = training_method
+#     self.load_best_model_at_end = load_best_model_at_end
+#     self.max_attack_ex = max_attack_ex
+#     self.epochs = epochs
+#     self.seed = seed
+#     self.run = run
 
-  def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
-    cust_attacker = CustomAttackerCl(outdir=outdir)
-    dataset = dataset['test']
-    results, name = cust_attacker.attack(model, model_name, tokenizer, dataset, dataset_name, max_attack_ex=self.max_attack_ex)
-    return results, name
+#   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
+#     cust_attacker = CustomAttackerCl(outdir=outdir)
+#     dataset = dataset['test']
+#     results, name = cust_attacker.attack(model, model_name, tokenizer, dataset, dataset_name, max_attack_ex=self.max_attack_ex)
+#     return results, name
 
-  def _generate_sequences(self, m):
-    return list(itertools.permutations(range(len(self.datasets)), m))
+#   def _generate_sequences(self, m):
+#     return list(itertools.permutations(range(len(self.datasets)), m))
 
-  def run_experiment(self):
-    self._ensure_folder_structure()
+#   def run_experiment(self):
+#     self._ensure_folder_structure()
 
-    for sqn in self.sequences:
-      model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_name, num_labels=2, ignore_mismatched_sizes=True,
-      )
+#     for sqn in self.sequences:
+#       model = AutoModelForSequenceClassification.from_pretrained(
+#             self.model_name, num_labels=2, ignore_mismatched_sizes=True,
+#       )
 
-      for i, dataset_idx in enumerate(sqn):
-        dataset_name = self.datasets[dataset_idx][0]
-        dataset = self.datasets[dataset_idx][1]
-        print(i)
+#       for i, dataset_idx in enumerate(sqn):
+#         dataset_name = self.datasets[dataset_idx][0]
+#         dataset = self.datasets[dataset_idx][1]
+#         print(i)
 
-        model_name = self._get_model_name(sqn[:i + 1], self.training_method[:i + 1], self.epochs[:i + 1], self.run)#self._get_model_name(sqn, i)
+#         model_name = self._get_model_name(sqn[:i + 1], self.training_method[:i + 1], self.epochs[:i + 1], self.run)#self._get_model_name(sqn, i)
 
-        print(model_name)
+#         print(model_name)
 
-        if model_name in self.exp_logger.models_paths:
-          print('-'*20 + 'Decision: Loading model \n')
-          abs_path = os.path.join(self.models_directory, model_name)
-          del model
+#         if model_name in self.exp_logger.models_paths:
+#           print('-'*20 + 'Decision: Loading model \n')
+#           abs_path = os.path.join(self.models_directory, model_name)
+#           del model
 
-          model = AutoModelForSequenceClassification.from_pretrained(
-            abs_path, num_labels=2, ignore_mismatched_sizes=True
-          )
-        else:
-          print('-'*20 + 'Decision: Training model \n')
-          model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.epochs[i], load_best_model_at_end=self.load_best_model_at_end)
+#           model = AutoModelForSequenceClassification.from_pretrained(
+#             abs_path, num_labels=2, ignore_mismatched_sizes=True
+#           )
+#         else:
+#           print('-'*20 + 'Decision: Training model \n')
+#           model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.epochs[i], load_best_model_at_end=self.load_best_model_at_end)
 
-          print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
-          results = self.evaluate_model(model, model_name, self.tokenizer, dataset)
-          self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
+#           print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
+#           results = self.evaluate_model(model, model_name, self.tokenizer, dataset)
+#           self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
 
-        cust_attacker = CustomAttackerCl()
-        attack_name = cust_attacker._get_name()
-        att_key = self.exp_logger.get_attack_key(model_name, attack_name, dataset_idx)
+#         cust_attacker = CustomAttackerCl()
+#         attack_name = cust_attacker._get_name()
+#         att_key = self.exp_logger.get_attack_key(model_name, attack_name, dataset_idx)
 
-        if att_key not in self.exp_logger.attack_results:
+#         if att_key not in self.exp_logger.attack_results:
 
-          print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
-          result, attack_name = self.attack_model(model, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
-          #self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
-          self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
-        else:
-          print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
+#           print('-'*20 + f'Decision: Attacking model on end {dataset_name} dataset: \n')
+#           result, attack_name = self.attack_model(model, model_name, self.tokenizer, dataset, dataset_name, os.path.join(self.base_directory, 'tmp'))
+#           #self.exp_logger.add_model_result(model_name, dataset_idx, results, 'test')
+#           self.exp_logger.add_attack_result(model_name, attack_name, dataset_idx, result)
+#         else:
+#           print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
           
 class BasicModCLExperiment(Experiment):
   def __init__(self, base_directory, datasets, model_name, end_train_part, attack_method, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, num_pre_epoch=2, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
@@ -601,8 +601,8 @@ def load_datasets_new(dataset_names = ["BogdanTurbal/yalp_review_v_2_1_p_1", "Bo
     
     names = [x.split('/')[-1] for x in dataset_names]
     
-    #datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[2], dataset_3), (names[3], dataset_4)]
-    datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[3], dataset_4)]
+    datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[2], dataset_3), (names[3], dataset_4)]
+    #datasets = [(names[0], dataset_1), (names[1], dataset_2), (names[3], dataset_4)]
     
     return datasets
   

@@ -1,0 +1,134 @@
+Last login: Sun May 12 23:11:38 on ttys000
+(base) bohdan.turbal@v099147 ~ % ssh jiaxuzhao@snellius.surf.nl
+(jiaxuzhao@snellius.surf.nl) Password: 
+**********************************************************************************
+* A GPU node (gcn1) on Snellius is available for interactive software            *
+* development and compiling codes that utilise GPUs.                             *
+* The page in the link below includes instructions on how to connect             *
+* to this node and an example compilation.                                       *
+* https://servicedesk.surf.nl/wiki/display/WIKI/Interactive+development+GPU+node *
+**********************************************************************************
+* N.B.: The '/gpfs/admin/hpc/usertools/userinfo' command gives access to older   *
+* information items previously included here, that have retained informational   *
+* value for users, such as known issues, new user commands, or best practices.   *
+******************************************** last modified: 2024-03-22 11:15 *****
+Last login: Mon May  6 08:44:05 2024 from 131.155.93.250
+(base) [jiaxuzhao@int4 ~]$ cd /gpfs/work4/0/tese0660/projects/transf_learn_attack/
+(base) [jiaxuzhao@int4 transf_learn_attack]$ ls
+0_id                 gin_imp_5755002.out            scripts
+1_id                 gin_imp_5755086.out            v1_bert_rob_bias
+2_id                 gin_imp_5755146.out            v1_rob_bs
+3_id                 gin_imp_5755170.out            v2
+4_id                 gin_imp_5755173.out            v2_bert_rob_bias
+5_id                 gin_imp_5755181.out            v2_bert_rob_bias_berta
+6_id                 gin_imp_5755195.out            v2_bert_rob_bias_llm
+7_id                 gin_imp_5755458.out            v3
+8_id                 gin_imp_5755537.out            v3_bert_rob_bias
+attack.py            gin_imp_5755540.out            v4
+attack_trans.py      gin_imp_5757703.out            v5
+blk_0                gin_imp_5757779.out            v6
+experiment.sh        gin_imp_5758802.out            v7
+gin_imp_5754930.out  gin_imp_5791410.out            v8
+gin_imp_5754936.out  gin_imp_5791412.out            v9
+gin_imp_5754973.out  __pycache__                    wandb
+gin_imp_5754981.out  rai_transfer_learning_attacks
+(base) [jiaxuzhao@int4 transf_learn_attack]$ mkdir v4_llm
+(base) [jiaxuzhao@int4 transf_learn_attack]$ cd rai_transfer_learning_attacks
+(base) [jiaxuzhao@int4 rai_transfer_learning_attacks]$ git pull
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 1), reused 3 (delta 1), pack-reused 0
+Unpacking objects: 100% (3/3), 353 bytes | 4.00 KiB/s, done.
+From https://github.com/BogdanTurbal/rai_transfer_learning_attacks
+   124d03e..ead09cf  main       -> origin/main
+Updating 124d03e..ead09cf
+Fast-forward
+ attack_trans.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+(base) [jiaxuzhao@int4 rai_transfer_learning_attacks]$ cd ..
+(base) [jiaxuzhao@int4 transf_learn_attack]$ cd scripts
+(base) [jiaxuzhao@int4 scripts]$ ls
+exp_bert_rob_bs_1_berta.sh  exp_bert_rob_bs_1_m.sh  exp_rob_bs_1.sh
+exp_bert_rob_bs_1_l_m.sh    exp_blk_0_v_1.sh        wandb
+(base) [jiaxuzhao@int4 scripts]$ ls -l
+total 19
+-rw-r-----  1 jiaxuzhao prjs0660  1564 Apr 29 00:09 exp_bert_rob_bs_1_berta.sh
+-rw-r-----  1 jiaxuzhao prjs0660  1560 Apr 28 21:46 exp_bert_rob_bs_1_l_m.sh
+-rw-r-----  1 jiaxuzhao prjs0660  1542 May  4 18:54 exp_bert_rob_bs_1_m.sh
+-rw-r-----  1 jiaxuzhao prjs0660  1542 May  7 15:45 exp_blk_0_v_1.sh
+-rw-r-----  1 jiaxuzhao prjs0660  1543 Apr 27 22:09 exp_rob_bs_1.sh
+drwxr-s--- 66 jiaxuzhao prjs0660 16384 May  4 18:57 wandb
+(base) [jiaxuzhao@int4 scripts]$ vim exp_blk_0_v_1.sh
+
+
+
+
+(base) [jiaxuzhao@int4 scripts]$ vim exp_blk_0_v_1.sh
+#!/bin/bash
+#SBATCH -p gpu
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=2
+#SBATCH --gpus-per-node=2
+#SBATCH -t 12:00:00
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=160G
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=bogdan.turbal.y@gmail.com
+#SBATCH -o /gpfs/work4/0/tese0660/projects/transf_learn_attack/v4_llm/gin_imp_%j.out
+
+# Load modules
+module purge
+module load 2023
+
+# Activate conda environment
+source ~/.bashrc
+conda activate att
+
+# Base directory
+BASE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/v4_llm"
+CODE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack/rai_transfer_learning_attacks"
+#SAVE_DIR="/gpfs/work4/0/tese0660/projects/transf_learn_attack"
+#cd $BASE_DIR
+
+# Define a list of specific seeds
+declare -a seeds=(1 42 1234 1 42 1234 1 42 1234)
+
+# Loop through the list of seeds
+for i in {0..5}; do
+    # Directory creation
+    mkdir -p $BASE_DIR/${i}_id
+
+    # Use the seed from the seeds array
+    seed=${seeds[$i]}
+    # Determine mod_id based on the iteration
+    let "mod_id = $i / 3"
+    let "run = $i % 3"
+
+    OUT_FILE=$BASE_DIR/gin_imp_${i}_%j.out
+
+    # Launch the Python script with specified parameters
+    python $CODE_DIR/attack_trans.py $BASE_DIR/${i}_id/ $BASE_DIR/ \
+    --list_data BogdanTurbal/hate_b_v_2_1,BogdanTurbal/linguistic_b_v_2_1,BogdanTurbal/gender_b_v_2_1,BogdanTurbal/political_b_v_2_1 \
+    --msl 2 --ne 3 --mae 1800 --mel 0 --seed $seed --run $run --mod_id $mod_id --load_best 0 > $OUT_FILE 2>&1 &
+done
+
+# Wait for all background jobs to finish
+wait
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+~                                                                                                                                                                                                                     
+-- INSERT --                                                                                                                                                                                        38,25         All
