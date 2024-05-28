@@ -512,7 +512,8 @@ class BasicModCLExperiment(Experiment):
         else:
           print('-'*20 + 'Decision: Training small dataset model \n')
           model_c = deepcopy(model)
-          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=self.base_epochs, load_best_model_at_end=self.load_best_model_at_end, train_part=self.end_train_part, save=False)
+          to_l_save = i != 0
+          model_c = self.train_model(model_c, model_name, self.tokenizer, dataset, epochs=self.base_epochs, load_best_model_at_end=self.load_best_model_at_end, train_part=self.end_train_part, save=to_l_save)
 
           print('-'*20 + f'Decision: Evaluating model on end {dataset_name} dataset: \n')
           results = self.evaluate_model(model_c, model_name, self.tokenizer, dataset)
@@ -527,7 +528,7 @@ class BasicModCLExperiment(Experiment):
           
           if i < len(sqn) - 1:
             print('-'*20 + 'Decision: Training full dataset model with saving\n')
-            model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.num_pre_epoch, load_best_model_at_end=False)
+            model = self.train_model(model, model_name, self.tokenizer, dataset, epochs=self.num_pre_epoch, load_best_model_at_end=False, save=True)
             print('-'*20 + 'Decision: Finished\n')
           else:
             dataset_name = self.datasets[sqn[i - 1]][0]
