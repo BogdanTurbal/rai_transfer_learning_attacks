@@ -689,6 +689,11 @@ def main():
     #datasets = load_datasets(max_examples_num)
     datasets = load_datasets_new(datasets_names)
     
+    
+    if max_examples_num != 0:
+      for i in range(len(datasets)):
+        datasets[i]['train_small'] = datasets[i]['train_small'].shuffle().select(range(max_examples_num))
+    
     print("Used datasets:")
     print(datasets)
     
