@@ -458,7 +458,7 @@ class CustomAttackerCl:
 #           print('-'*20 + f'Decision: SKIPPING Attacking model on end {dataset_name} dataset: \n')
           
 class BasicModCLExperiment(Experiment):
-  def __init__(self, base_directory, datasets, model_name, end_train_part, attack_method, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, num_pre_epoch=2, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0):
+  def __init__(self, base_directory, datasets, model_name, end_train_part, attack_method, seed=42, training_method=['u', 'u'], epochs=[1, 1], base_epochs=4, num_pre_epoch=2, base_len=1,  load_best_model_at_end=False, max_attack_ex=1024, run=0, to_remain=-1):
     super().__init__(base_directory, datasets, model_name, run, seed)
     self.base_epochs = base_epochs
     self.sequences = self._generate_sequences(base_len)
@@ -474,6 +474,7 @@ class BasicModCLExperiment(Experiment):
     self.end_train_part = end_train_part
     self.attack_method = attack_method
     self.num_pre_epoch = num_pre_epoch
+    self.to_remain = to_remain
 
   def attack_model(self, model, model_name, tokenizer, dataset, dataset_name, outdir):
     cust_attacker = CustomAttackerCl(self.attack_method, outdir=outdir)
@@ -488,11 +489,16 @@ class BasicModCLExperiment(Experiment):
     self._ensure_folder_structure()
 
     for sqn in self.sequences:
+      if self.to_remain > 0:
+        if sqn[0] != self.to_remain:
+          continue
+      
       model = AutoModelForSequenceClassification.from_pretrained(
             self.model_name, num_labels=2, ignore_mismatched_sizes=True,
       )
 
       for i, dataset_idx in enumerate(sqn):
+        
         dataset_name = self.datasets[dataset_idx][0]
         dataset = self.datasets[dataset_idx][1]
         print(i)
@@ -632,6 +638,7 @@ def args_parser():
     parser.add_argument("--run", help="Run", default=0, type=int)
     parser.add_argument("--mod_id", help="Model id", default=0, type=int)
     parser.add_argument("--load_best", help="Load best epoch", default=0, type=int)
+    parser.add_argument("--tskp", help="To remain 0", default=-1, type=int)
     
     return parser.parse_args()
     #parser.add_argument("--optional-arg", help="Optional argument", default="default value")
@@ -685,6 +692,7 @@ def main():
     datasets_names = args.list_data
     train_end_part = args.tr_end_prt
     attack_method = args.att_m
+    to_remain = args.tskp
     
     
     init_configs(num_epochs, CFG.models[model_id], 'u', max_attack_ex, max_examples_num, run, seed)
@@ -706,7 +714,7 @@ def main():
     #seeds = [1, 42, 1234]
      
     for model in [CFG.models[model_id]]:
-        exp = BasicModCLExperiment(current_dir, datasets, model, train_end_part, attack_method, seed=seed, base_epochs=num_epochs, num_pre_epoch=num_pre_epoch, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end)
+        exp = BasicModCLExperiment(current_dir, datasets, model, train_end_part, attack_method, seed=seed, base_epochs=num_epochs, num_pre_epoch=num_pre_epoch, epochs=[num_epochs] * max_len, training_method=['u'] * max_len, max_attack_ex=max_attack_ex, base_len=max_len, run=run, load_best_model_at_end=load_best_model_at_end, to_remain=to_remain)
         exp.run_experiment()
 
         save_data(save_dir, exp, model, run)
