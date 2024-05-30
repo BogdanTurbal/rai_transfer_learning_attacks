@@ -55,6 +55,7 @@ import pynvml
 from copy import deepcopy
 
 from textattack.attack_recipes import BERTAttackLi2020
+from textattack.attack_recipes import TextFoolerJin2019
 
 def log_system_metrics():
     ram_usage = psutil.virtual_memory().percent  # Get RAM usage in percentage
@@ -279,6 +280,9 @@ class CustomAttackerCl:
       name = 'A2TYoo2021_l'
     elif attack_method == 2:
       name ='BERTAttackLi2020'
+    elif attack_method == 3:
+      name = 'TextFoolerJin2019'
+    
       
     self.name = name
     self.outdir = outdir
@@ -338,7 +342,8 @@ class CustomAttackerCl:
       attack = BERTAttackLi2020.build(model_wrapper)
       attack.transformation.max_candidates = 4
       attack.constraints[0].max_percent = 0.2
-      
+    elif self.attack_method == 3:
+      attack = TextFoolerJin2019.build(model_wrapper) 
     #attack = self.attack_method.build(model_wrapper, mlm=False)
     #num_examples = n_ex
     # Set up file naming
